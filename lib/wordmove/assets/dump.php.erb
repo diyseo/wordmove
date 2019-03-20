@@ -156,9 +156,18 @@ class MySQLDump
 			$size = 0;
 			$res = $this->connection->query("SELECT * FROM $delTable", MYSQLI_USE_RESULT);
 			while ($row = $res->fetch_assoc()) {
+        $keep = 1;
 				$s = '(';
 				foreach ($row as $key => $value) {
-					if ($value === NULL) {
+          if ($key == 'post_type') {
+						if ($value == 'post') {
+							$keep = 0;
+						} elseif ($value == 'revision') {
+							$keep = 0;
+						}
+					}
+
+          if ($value === NULL) {
 						$s .= "NULL,\t";
 					} elseif ($numeric[$key]) {
 						$s .= $value . ",\t";
@@ -167,20 +176,22 @@ class MySQLDump
 					}
 				}
 
-				if ($size == 0) {
-					$s = "INSERT INTO $delTable $cols VALUES\n$s";
-				} else {
-					$s = ",\n$s";
-				}
+				if ($keep == 1) {
+					if ($size == 0) {
+						$s = "INSERT INTO $delTable $cols VALUES\n$s";
+					} else {
+						$s = ",\n$s";
+					}
 
-				$len = strlen($s) - 1;
-				$s[$len - 1] = ')';
-				fwrite($handle, $s, $len);
+          $len = strlen($s) - 1;
+  				$s[$len - 1] = ')';
+  				fwrite($handle, $s, $len);
 
-				$size += $len;
-				if ($size > self::MAX_SQL_SIZE) {
-					fwrite($handle, ";\n");
-					$size = 0;
+  				$size += $len;
+  				if ($size > self::MAX_SQL_SIZE) {
+  					fwrite($handle, ";\n");
+  					$size = 0;
+  				}
 				}
 			}
 
